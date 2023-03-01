@@ -4,6 +4,7 @@ import sys
 import threading
 
 fileReceived = 1
+send = ""
 
 class Server:
     def __init__(self):
@@ -50,16 +51,24 @@ class Client(threading.Thread):
         self.client = id[0]
         self.address = id[1]
         self.size = 1024
+        self.client.setblocking(0)
 
     def run(self):
         global fileReceived
-        while fileReceived:
-            filename = self.client.recv(self.size)
-            if filename:
-                print ('recv: '+str(self.address)+str(filename))
+        global send
+        while True:
+            ready = select.select([self.client], [], [], 5)
+            if ready[0]:
+                send = self.client.recv(self.size)
+            
+            if send:
                 fileReceived = 0
-        reply = "yes"
-        self.client.send(reply.encode())
+
+            if fileReceived == 0:
+                print ('recv: '+str(self.address)+str(send))
+                self.client.send(str(send).encode())
+                break
+        
 
 if __name__ == "__main__":
     s = Server()
